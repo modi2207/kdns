@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <pthread.h>
 #include <rte_mbuf.h>
 #include <rte_ether.h>
@@ -12,7 +13,7 @@
 #include <rte_icmp.h>
 
 #include "rte_cycles.h"
-
+#include <sched.h>
 #include "dns-conf.h"
 #include "process.h"
 #include "kdns-adap.h"
@@ -266,7 +267,7 @@ static int reset_master_affinity(void) {
 
     tid = pthread_self();
     CPU_ZERO(&cpuset);
-    CPU_SET(rte_get_master_lcore(), &cpuset);
+    CPU_SET(rte_get_main_lcore(), &cpuset);
 
     s = pthread_setaffinity_np(tid, sizeof(cpu_set_t), &cpuset);
     if (s != 0) {

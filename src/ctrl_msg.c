@@ -86,7 +86,7 @@ uint16_t ctrl_msg_master_process(void) {
     }
 
     unsigned lcore_id;
-    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+    RTE_LCORE_FOREACH_WORKER(lcore_id) {
         nb_copy = 0;
         for (i = 0; i < nb_rx; ++i) {
             if (msg[i]->type < 0 || msg[i]->type >= CTRL_MSG_TYPE_MAX) {
@@ -137,7 +137,7 @@ void ctrl_msg_init(void) {
     unsigned lcore_id;
     char ring_name[32];
 
-    master_lcore = rte_get_master_lcore();
+    master_lcore = rte_get_main_lcore();
     RTE_LCORE_FOREACH(lcore_id) {
         snprintf(ring_name, sizeof(ring_name), "ctrl_msg_ring_%u", lcore_id);
         if (lcore_id == master_lcore) {

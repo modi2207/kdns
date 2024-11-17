@@ -15,6 +15,7 @@
 #include <rte_udp.h>
 #include <rte_bus_pci.h>
 #include <rte_malloc.h>
+#include <rte_bus.h>
 #include "netdev.h"
 #include "dns-conf.h"
 #include "util.h"
@@ -44,28 +45,28 @@ struct net_device kdns_net_device;
 /* Options for configuring ethernet port */
 static struct rte_eth_conf port_conf = {
     .rxmode = {
-        .max_rx_pkt_len = RTE_ETHER_MAX_LEN,
-        .split_hdr_size = 0,
+        .max_lro_pkt_size = RTE_ETHER_MAX_LEN,
+        //.split_hdr_size = 0,
     },
     .txmode = {
-        .mq_mode = ETH_MQ_TX_NONE,
+        .mq_mode = RTE_ETH_MQ_TX_NONE,
     },
 };
 
 static struct rte_eth_conf port_conf_rss = {
     .rxmode = {
-        .mq_mode    = ETH_MQ_RX_RSS,
-        .max_rx_pkt_len = RTE_ETHER_MAX_LEN,
-        .split_hdr_size = 0,
+        .mq_mode    = RTE_ETH_MQ_RX_RSS ,
+        .max_lro_pkt_size = RTE_ETHER_MAX_LEN,
+     //   .split_hdr_size = 0,
     },
     .rx_adv_conf = {
         .rss_conf = {
             .rss_key = NULL,
-            .rss_hf =  ETH_RSS_IP,
+            .rss_hf =  RTE_ETH_RSS_IP,
         },
     },
     .txmode = {
-        .mq_mode = ETH_MQ_TX_NONE,
+        .mq_mode = RTE_ETH_MQ_TX_NONE,
     },
 };
 
@@ -168,14 +169,14 @@ static void check_all_ports_link_status(uint8_t port_num, uint32_t port_mask) {
             if (print_flag == 1) {
                 if (link.link_status) {
                     log_msg(LOG_INFO, "Port %d Link Up - speed %u Mbps - %s\n", (uint8_t)portid, (unsigned)link.link_speed,
-                            (link.link_duplex == ETH_LINK_FULL_DUPLEX) ? ("full-duplex") : ("half-duplex\n"));
+                            (link.link_duplex == RTE_ETH_LINK_FULL_DUPLEX) ? ("full-duplex") : ("half-duplex\n"));
                 } else {
                     log_msg(LOG_INFO, "Port %d Link Down\n", (uint8_t)portid);
                 }
                 continue;
             }
             /* clear all_ports_up flag if any link down */
-            if (link.link_status == ETH_LINK_DOWN) {
+            if (link.link_status == RTE_ETH_LINK_DOWN) {
                 all_ports_up = 0;
                 break;
             }
@@ -208,9 +209,9 @@ static void netif_queue_config_init(uint16_t port_id) {
     int port_socket_id = rte_eth_dev_socket_id(port_id);
     unsigned lcore_id;
 
-    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-        log_msg(LOG_INFO, "core queue info: coreId(%d) coreSocketId(%u) portID(%d) portSocketId(%d) rxQueueId(%d) txQueueId(%d)\n",
-                lcore_id, lcore_config[lcore_id].socket_id, port_id, port_socket_id, rx_id, tx_id);
+    RTE_LCORE_FOREACH_WORKER(lcore_id) {
+        log_msg(LOG_INFO, "core queue info: coreId(%d) portID(%d) portSocketId(%d) rxQueueId(%d) txQueueId(%d)\n",
+                lcore_id,port_id, port_socket_id, rx_id, tx_id);
 
         struct netif_queue_conf *conf =  netif_queue_conf_get(lcore_id);
         memset(conf, 0, sizeof(struct netif_queue_conf));
@@ -263,8 +264,8 @@ static void kdns_port_init(uint16_t port_id) {
         memcpy(&conf, &port_conf, sizeof(conf));
     }
     rte_eth_dev_info_get(port_id, &dev_info);
-    if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE) {
-        conf.txmode.offloads |= DEV_TX_OFFLOAD_MBUF_FAST_FREE;
+    if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE) {
+        conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_MBUF_FAST_FREE;
     }
     conf.rx_adv_conf.rss_conf.rss_hf &= dev_info.flow_type_rss_offloads;
 
@@ -426,11 +427,11 @@ static int kdns_kni_init(uint16_t port_id) {
     if (dev_info.device) {
         bus = rte_bus_find_by_device(dev_info.device);
     }
-    if (bus && !strcmp(bus->name, "pci")) {
-        pci_dev = RTE_DEV_TO_PCI(dev_info.device);
-        conf.addr = pci_dev->addr;
-        conf.id = pci_dev->id;
-    }
+    // if (bus && !strcmp(bus->name, "pci")) {
+    //     pci_dev = RTE_DEV_TO_PCI(dev_info.device);
+    //     conf.addr = pci_dev->addr;
+    //     conf.id = pci_dev->id;
+    // }
 
     rte_eth_macaddr_get(port_id, (struct rte_ether_addr *)&conf.mac_addr);
     rte_eth_dev_get_mtu(port_id, &conf.mtu);
@@ -500,7 +501,7 @@ int kni_ingress(struct rte_mbuf **mbufs, uint16_t nb_mbufs) {
 void netif_statsdata_get(struct netif_queue_stats *sta) {
     unsigned lcore_id;
     struct netif_queue_stats *sta_lcore;
-    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+    RTE_LCORE_FOREACH_WORKER(lcore_id) {
         sta_lcore = &kdns_net_device.l_netif_queue_conf[lcore_id].stats;
         sta->pkts_rcv += sta_lcore->pkts_rcv;
         sta->pkts_2kni += sta_lcore->pkts_2kni;
@@ -532,7 +533,7 @@ void netif_statsdata_get(struct netif_queue_stats *sta) {
 void netif_statsdata_reset(void) {
     unsigned lcore_id;
     struct netif_queue_stats *sta_lcore;
-    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+    RTE_LCORE_FOREACH_WORKER(lcore_id) {
         sta_lcore = &kdns_net_device.l_netif_queue_conf[lcore_id].stats;
         sta_lcore->pkts_rcv = 0;
         sta_lcore->pkts_2kni = 0;
@@ -550,7 +551,7 @@ void netif_statsdata_reset(void) {
 void netif_statsdata_metrics_reset(void) {
     unsigned lcore_id;
     struct netif_queue_stats *sta_lcore;
-    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+    RTE_LCORE_FOREACH_WORKER(lcore_id) {
         sta_lcore = &kdns_net_device.l_netif_queue_conf[lcore_id].stats;
         memset(&sta_lcore->metrics, 0, sizeof(metrics_metrics_st));
         sta_lcore->metrics.minTime = 0xffff;
@@ -565,9 +566,9 @@ void init_dns_packet_header(struct rte_ether_hdr *eth_hdr, struct rte_ipv4_hdr *
      * Initialize ETHER header.
      */
     struct rte_ether_addr tmp_mac;
-    rte_ether_addr_copy(&eth_hdr->d_addr, &tmp_mac);
-    rte_ether_addr_copy(&eth_hdr->s_addr, &eth_hdr->d_addr);
-    rte_ether_addr_copy(&tmp_mac, &eth_hdr->s_addr);
+    rte_ether_addr_copy(&eth_hdr->dst_addr, &tmp_mac);
+    rte_ether_addr_copy(&eth_hdr->src_addr, &eth_hdr->dst_addr);
+    rte_ether_addr_copy(&tmp_mac, &eth_hdr->src_addr);
     eth_hdr->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4);
 
     /*

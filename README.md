@@ -11,12 +11,53 @@ KDNS is a high-performance DNS Server based on DPDK. Do not rely on the database
 
 ### 1. Compilation
 
-Required  OS release: Centos-7.2 or Centos-7.4.
-Make all for the first time, after that make kdns if you just change the DNS code.
+Required  OS release: Ubuntu 22.04
+Kernel version >= 4.14
+glibc >= 2.7  (check with ldd --version)
+DPDK version:- 22.11.6
+GCC version:- 4.9+
+
+1) Upgrade pkg-config while version < 0.28
 
 ```bash
-git clone https://github.com/tiglabs/containerdns.git
-cd containerdns/kdns
+
+wget https://pkg-config.freedesktop.org/releases/pkg-config-0.29.2.tar.gz
+tar xzvf pkg-config-0.29.2.tar.gz
+cd pkg-config-0.29.2
+./configure --with-internal-glib
+make
+make install
+mv /usr/bin/pkg-config /usr/bin/pkg-config.bak
+ln -s /usr/local/bin/pkg-config /usr/bin/pkg-config
+
+```
+
+2) Install Required packages
+
+
+```bash
+
+apt install update
+apt install libtool libtool-bin libpcap-dev texinfo libnuma-dev
+apt install kernel-headers-$(uname -r) kernel-devel-$(uname -r)
+
+```
+
+3) Clone the repo and set PKG_CONFIG_PATH environment variable and allocate hugepages.
+
+```bash
+
+git clone https://github.com/modi2207/kdns.git
+cd kdns
+export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig
+mkdir -p /mnt/huge
+mount -t hugetlbfs nodev /mnt/huge
+
+```
+
+4) Make all for the first time, after that make kdns if you just change the DNS code.
+
+```bash
 make all
 ```
 
@@ -26,13 +67,14 @@ The default configuration path for KDNS is /etc/kdns/kdns.cfg. An example for kd
 
 EAL configuration reference [DPDK document](http://dpdk.org/doc/guides/testpmd_app_ug/run_app.html#eal-command-line-options).
 
-```vim
+```bash
 [EAL]
-cores = 1,3,5,7,9
-memory = 1024,1024
+cores = 0
+memory = 1024
 mem-channels = 4
  
 [NETDEV]
+; 默认KNI网口名称
 name-prefix = kdns
 mode = rss
 mbuf-num = 65535
@@ -40,23 +82,32 @@ kni-mbuf-num = 8191
 rxqueue-len = 1024
 txqueue-len = 2048
     
-rxqueue-num = 4
-txqueue-num = 4
+rxqueue-num = 1
+txqueue-num = 1
 
+; KNI网口IP地址
 kni-ipv4 = 2.2.2.240
-kni-vip = 10.17.9.100
+; BGP 发布的VIP
+kni-vip = 127.0.0.1
 
 [COMMON]
 log-file = /export/log/kdns/kdns.log
 
 fwd-def-addrs = 114.114.114.114:53,8.8.8.8:53
+; 转发线程数
 fwd-thread-num = 4
+; 转发模式
 fwd-mode = cache
+; 转发请求超时时间
 fwd-timeout = 2
+; 转发请求mbuf数
 fwd-mbuf-num = 65535
 
+; 每IP全部报文限速
 all-per-second = 1000
+; 每IP DNS转发请求限速
 fwd-per-second = 10
+; 限速客户端数, 设置为0, 则关闭限速功能
 client-num = 10240
 
 web-port = 5500
@@ -66,32 +117,12 @@ key-pem-file = /etc/kdns/server1-key.pem
 zones = tst.local,example.com,168.192.in-addr.arpa
 ```
 
-Reserve huge pages memory:
 
-```bash
-mkdir -p /mnt/huge
-mount -t hugetlbfs nodev /mnt/huge
-echo 4096 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
-```
-
-Load [igb_uio](http://dpdk.org/doc/guides/linux_gsg/linux_drivers.html) module:
-
-```bash
-modprobe uio
-insmod ./bin/igb_uio.ko
-./bin/dpdk-devbind.py --bind=igb_uio kdns
-```
-
-Load [rte_kni](http://dpdk.org/doc/guides/linux_gsg/enable_func.html#loading-the-dpdk-kni-kernel-module) module:
-
-```bash
-insmod ./bin/rte_kni.ko
-```
 
 Start kdns:
 
 ```bash
-./bin/kdns 
+sh start.sh
 ```
 
 ## API 

@@ -1,39 +1,41 @@
-ifeq ($(RTE_SDK),)
-$(error "Please define RTE_SDK environment variable")
-endif
+# Define variables
+CC = gcc
+CFLAGS = -Wall -Werror
+BUILD_DIR = build
+LIB_NAME = libkdns.a
+
+SRCDIR=/home/chirag/Desktop/kdns/core
 
 DEPDIR = $(SRCDIR)/../deps
 
 INCLUDE += -I$(DEPDIR)/libjansson/src
 
-# Default target, can be overriden by command line or environment
-include $(RTE_SDK)/mk/rte.vars.mk
+# Source files
+SRCS = dns.c domain_store.c packet.c query.c radtree.c util.c view.c zone.c
 
-# binary name
-LIB = libkdns.a
+# Object files
+OBJS = $(patsubst %.c, $(BUILD_DIR)/%.o, $(SRCS))
 
-# all source are stored in SRCS-y
-SRCS-y := dns.c \
-domain_store.c \
-packet.c \
-query.c \
-radtree.c \
-util.c \
-view.c \
-zone.c 
-SYMLINK-y-include += buffer.h \
-dns.h \
-domain_store.h \
-kdns.h\
-packet.h \
-query.h \
-radtree.h \
-util.h \
-view.h \
-zone.h 
+# Target: library and build directory
+all: $(BUILD_DIR) $(BUILD_DIR)/$(LIB_NAME)
+
+# Create the build directory
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
 CFLAGS += $(INCLUDE)
 
-CFLAGS += $(WERROR_FLAGS) -g -O2 -Wno-cast-qual
+# Compile each .c file to an object file in the build directory
+$(BUILD_DIR)/%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-include $(RTE_SDK)/mk/rte.extlib.mk
+# Create the static library from object files
+$(BUILD_DIR)/$(LIB_NAME): $(OBJS)
+	ar rcs $@ $(OBJS)
+
+# Clean up build artifacts
+clean:
+	rm -rf $(BUILD_DIR)
+
+# Phony targets
+.PHONY: all clean

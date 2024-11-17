@@ -18,15 +18,14 @@ ifeq ($(JOBS),)
 endif
 
 
-RTE_SDK_TAR = $(CURDIR)/dpdk-19.08.tar.xz
-RTE_SDK = $(CURDIR)/dpdk-19.08
+RTE_SDK = $(CURDIR)/dpdk-22.11.6
 export RTE_SDK
 
 # Default target, can be overriden by command line or environment
-RTE_TARGET ?= x86_64-$(machine)-linuxapp-gcc
+RTE_TARGET ?= build
 export RTE_TARGET
 
-bindir =  $(CURDIR)/bin
+# bindir =  $(CURDIR)/bin
 
 
 VERSION ?= 0.1
@@ -39,16 +38,9 @@ all: dpdk deps kdns bin
 
 .PHONY: dpdk
 dpdk:
-	$(Q)rm -fr $(RTE_SDK)
-	$(Q)tar -xvf $(RTE_SDK_TAR)
-	$(Q)cd $(RTE_SDK) && $(MAKE) O=$(RTE_TARGET) T=$(RTE_TARGET) config
-	$(Q)cd $(RTE_SDK) && sed -ri 's,(RTE_MACHINE=).*,\1$(machine),' $(RTE_TARGET)/.config
-	$(Q)cd $(RTE_SDK) && sed -ri 's,(RTE_APP_TEST=).*,\1n,'         $(RTE_TARGET)/.config
-	$(Q)cd $(RTE_SDK) && sed -ri 's,(RTE_LIBRTE_PMD_PCAP=).*,\1y,'  $(RTE_TARGET)/.config
-	$(Q)cd $(RTE_SDK) && sed -ri 's,(RTE_KNI_KMOD_ETHTOOL=).*,\1n,' $(RTE_TARGET)/.config
-	$(Q)cd $(RTE_SDK) && sed -ri 's,(RTE_LIBRTE_PMD_AF_XDP=).*,\1y,' $(RTE_TARGET)/.config
-	$(Q)cd $(RTE_SDK) && sed -ri 's,(CFG_VALUE_LEN ).*,\1(2048),'   $(RTE_SDK)/lib/librte_cfgfile/rte_cfgfile.h
-	$(Q)cd $(RTE_SDK) && $(MAKE) O=$(RTE_TARGET) -j ${JOBS}
+	$(Q)cd $(RTE_SDK) && meson -Denable_kmods=true -Ddisable_libs=flow_classify build
+	$(Q)cd $(RTE_SDK) && ninja -C build
+	$(Q)cd $(RTE_SDK) && ninja -C build install
 
 .PHONY: deps
 deps:
@@ -57,18 +49,18 @@ deps:
 .PHONY: kdns
 kdns:
 	$(Q)cd core && $(MAKE) O=$(RTE_TARGET)
+	$(Q)cd core/${RTE_TARGET} && mkdir -p lib
+	$(Q)cd core/${RTE_TARGET} && mkdir -p include
+	$(Q)cp -a core/$(RTE_TARGET)/libkdns.a core/$(RTE_TARGET)/lib/
+	$(Q)cp -a core/*.h core/$(RTE_TARGET)/include/
 	$(Q)cd src && $(MAKE) O=$(RTE_TARGET)
-	$(Q)test -d $(bindir)|| mkdir -p $(bindir)
-	$(Q)cp -a $(CURDIR)/src/$(RTE_TARGET)/kdns $(bindir)/kdns
 
 .PHONY: bin
 bin:
-	$(Q)test -d $(bindir)|| mkdir -p $(bindir)
-	$(Q)cp -a $(RTE_SDK)/usertools/cpu_layout.py $(bindir)/cpu_layout.py
-	$(Q)cp -a $(RTE_SDK)/usertools/dpdk-devbind.py $(bindir)/dpdk-devbind.py
-	$(Q)cp -a $(RTE_SDK)/$(RTE_TARGET)/kmod/igb_uio.ko $(bindir)/igb_uio.ko
-	$(Q)cp -a $(RTE_SDK)/$(RTE_TARGET)/kmod/rte_kni.ko $(bindir)/rte_kni.ko
-	$(Q)cp -a $(CURDIR)/src/$(RTE_TARGET)/kdns $(bindir)/kdns
+	$(Q)cp -a $(RTE_SDK)/usertools/cpu_layout.py $(CURDIR)/src/$(RTE_TARGET)/cpu_layout.py
+	$(Q)cp -a $(RTE_SDK)/usertools/dpdk-devbind.py $(CURDIR)/src/$(RTE_TARGET)/dpdk-devbind.py
+	$(Q)cp -a $(RTE_SDK)/$(RTE_TARGET)/kernel/linux/igb_uio/igb_uio.ko $(CURDIR)/src/$(RTE_TARGET)/igb_uio.ko
+	$(Q)cp -a $(RTE_SDK)/$(RTE_TARGET)/kernel/linux/kni/rte_kni.ko $(CURDIR)/src/$(RTE_TARGET)/rte_kni.ko
 	
 .PHONY: clean
 clean:

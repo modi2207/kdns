@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -190,7 +191,7 @@ int main(int argc, char **argv) {
     local_udp_process_init();
 
     unsigned lcore_id;
-    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+    RTE_LCORE_FOREACH_WORKER(lcore_id) {
         rte_eal_remote_launch(process_slave, NULL, lcore_id);
     }
 

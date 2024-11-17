@@ -599,7 +599,7 @@ static void *statistics_percore_get(__attribute__((unused)) struct connection_in
         return (void *)err;
     }
 
-    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+    RTE_LCORE_FOREACH_WORKER(lcore_id) {
         struct netif_queue_conf *conf = netif_queue_conf_get(lcore_id);
         struct netif_queue_stats *sta_lcore = &conf->stats;
 
@@ -712,7 +712,7 @@ static void *statistics_port_get(__attribute__((unused)) struct connection_info_
         json_array_append_new(array, value);
     }
 
-    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+    RTE_LCORE_FOREACH_WORKER(lcore_id) {
         json_t *value = NULL;
         struct netif_queue_conf *conf = netif_queue_conf_get(lcore_id);
         if (conf->rx_queue_id < RTE_ETHDEV_QUEUE_STAT_CNTRS && conf->tx_queue_id < RTE_ETHDEV_QUEUE_STAT_CNTRS) {
