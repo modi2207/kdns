@@ -2,30 +2,30 @@
 
 # Load UIO kernel module
 echo "Loading UIO kernel module..."
-modprobe uio
+# modprobe uio
 
 # Insert the DPDK igb_uio kernel module
-echo "Inserting igb_uio kernel module..."
-insmod ./src/build/igb_uio.ko || { echo "Failed to insert igb_uio.ko"; exit 1; }
+# echo "Inserting igb_uio kernel module..."
+# insmod ./src/build/igb_uio.ko || { echo "Failed to insert igb_uio.ko"; exit 1; }
 
-# Insert the DPDK KNI kernel module
-echo "Inserting rte_kni kernel module..."
-insmod ./src/build/rte_kni.ko || { echo "Failed to insert rte_kni.ko"; exit 1; }
+# # Insert the DPDK KNI kernel module
+# echo "Inserting rte_kni kernel module..."
+# insmod ./src/build/rte_kni.ko || { echo "Failed to insert rte_kni.ko"; exit 1; }
 
 # Bring down the specified network interface
-INTERFACE="ens37"
+INTERFACE="enp2s0"
 echo "Bringing down interface $INTERFACE..."
-ip link set down $INTERFACE || { echo "Failed to bring down $INTERFACE"; exit 1; }
+# ip link set down $INTERFACE || { echo "Failed to bring down $INTERFACE"; exit 1; }
 
 # Bind the network interface to igb_uio
-PCI_ADDRESS="02:05.0"
-echo "Binding PCI device $PCI_ADDRESS to igb_uio..."
-./src/build/dpdk-devbind.py -b igb_uio $PCI_ADDRESS || { echo "Failed to bind $PCI_ADDRESS to igb_uio"; exit 1; }
+# PCI_ADDRESS="02:05.0"
+# echo "Binding PCI device $PCI_ADDRESS to igb_uio..."
+# ./src/build/dpdk-devbind.py -b igb_uio $PCI_ADDRESS || { echo "Failed to bind $PCI_ADDRESS to igb_uio"; exit 1; }
 
 # Allocate hugepages
-HUGEPAGES=1024
-echo "Setting hugepages to $HUGEPAGES..."
-echo $HUGEPAGES > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages || { echo "Failed to set hugepages"; exit 1; }
+# HUGEPAGES=1024
+# echo "Setting hugepages to $HUGEPAGES..."
+# echo $HUGEPAGES > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages || { echo "Failed to set hugepages"; exit 1; }
 
 # Start the kDNS application
 echo "Starting kDNS..."

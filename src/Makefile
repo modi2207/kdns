@@ -2,7 +2,7 @@ ifeq ($(RTE_SDK),)
 $(error "Please define RTE_SDK environment variable")
 endif
 
-SRCDIR=/home/chirag/Desktop/kdns/core
+SRCDIR=/app/kdns/core
 
 DEPDIR = $(SRCDIR)/../deps
 

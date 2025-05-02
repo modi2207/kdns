@@ -4,7 +4,7 @@ CFLAGS = -Wall -Werror
 BUILD_DIR = build
 LIB_NAME = libkdns.a
 
-SRCDIR=/home/chirag/Desktop/kdns/core
+SRCDIR=/app/kdns/core
 
 DEPDIR = $(SRCDIR)/../deps
 

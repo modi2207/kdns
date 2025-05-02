@@ -98,10 +98,18 @@ static int eal_config_load(struct rte_cfgfile *cfgfile, struct eal_config *cfg, 
     if (entry) {
         snprintf(cfg->argv[cfg->argc++], DPDK_MAX_ARG_LEN, "--file-prefix=%s", entry);
     }
+    
 
     entry = rte_cfgfile_get_entry(cfgfile, "EAL", "log-level");
     if (entry) {
         snprintf(cfg->argv[cfg->argc++], DPDK_MAX_ARG_LEN, "--log-level=%s", entry);
+    }
+
+    snprintf(cfg->argv[cfg->argc++], DPDK_MAX_ARG_LEN, "--no-pci", entry);
+
+    entry = rte_cfgfile_get_entry(cfgfile, "EAL", "vdev");
+    if (entry) {
+        snprintf(cfg->argv[cfg->argc++], DPDK_MAX_ARG_LEN, "--vdev=%s", entry);
     }
 
     return 0;
