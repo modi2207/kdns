@@ -838,7 +838,7 @@ static void kni_get_drvinfo(struct net_device *dev,
 #else
 	strscpy(info->version, KNI_VERSION, sizeof(info->version));
 	strscpy(info->driver, "kni", sizeof(info->driver));
-#endifs
+#endif
 }
 
 static const struct ethtool_ops kni_net_ethtool_ops = {
