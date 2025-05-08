@@ -108,7 +108,6 @@ static int eal_config_load(struct rte_cfgfile *cfgfile, struct eal_config *cfg, 
     snprintf(cfg->argv[cfg->argc++], DPDK_MAX_ARG_LEN, "--no-pci");
 
     entry = rte_cfgfile_get_entry(cfgfile, "EAL", "vdev");
-    
     if (entry) {
         snprintf(cfg->argv[cfg->argc++], DPDK_MAX_ARG_LEN, "--vdev=%s", entry);
     }
@@ -139,6 +138,8 @@ static int netdev_config_load(struct rte_cfgfile *cfgfile, struct netdev_config 
         cfg->mode = netdev_mode_parse(entry);
     }
 
+   
+   
     entry = rte_cfgfile_get_entry(cfgfile, "NETDEV", "mbuf-num");
     if (entry && parser_read_uint32(&cfg->mbuf_num, entry) < 0) {
         printf("Cannot read NETDEV/mbuf-num = %s.\n", entry);
@@ -332,8 +333,11 @@ static int config_file_load(struct dns_config *cfg, char *cfgfile_path, char *pr
         snprintf(cfg->eal.argv[cfg->eal.argc++], DPDK_MAX_ARG_LEN, "--vdev=eth_af_packet0,iface=%s,qpairs=%u,framecnt=%u",
                  cfg->netdev.kni_name_prefix, cfg->netdev.rxq_num, cfg->netdev.rxq_desc_num + cfg->netdev.txq_desc_num);
     } else if (cfg->netdev.pmd == PMD_TYPE_AF_XDP) {
-        snprintf(cfg->eal.argv[cfg->eal.argc++], DPDK_MAX_ARG_LEN, "--vdev=net_af_xdp0,iface=%s,start_queue=%u,queue_count=%u,pmd_zero_copy=1",
-                 cfg->netdev.kni_name_prefix, cfg->netdev.start_queue, cfg->netdev.rxq_num);
+        // snprintf(cfg->eal.argv[cfg->eal.argc++], DPDK_MAX_ARG_LEN, "--vdev=net_af_xdp0,iface=%s,start_queue=%u,queue_count=%u,pmd_zero_copy=1",
+        //          cfg->netdev.kni_name_prefix, cfg->netdev.start_queue, cfg->netdev.rxq_num);
+
+                 snprintf(cfg->eal.argv[cfg->eal.argc++], DPDK_MAX_ARG_LEN, "--vdev=net_af_xdp0,use_cni=1,iface=%s,",
+                    cfg->netdev.kni_name_prefix);
     } else if (cfg->netdev.pmd == PMD_TYPE_LIBPCAP) {
         int i;
         char tmp[DPDK_MAX_ARG_LEN] = {0};
